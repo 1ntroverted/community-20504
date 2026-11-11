@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+
+const controller = require('../controllers/boardController');
+
+router.get('/', controller.getBoards);
+router.get('/:id', controller.getBoard);
+router.post('/', controller.createBoard);
+router.put('/:id', controller.updateBoard);
+router.delete('/:id', controller.deleteBoard);
+
+module.exports = router;

@@ -1,0 +1,149 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6fa;
+    color: #333;
+}
+
+.app {
+    min-height: 100vh;
+}
+
+.header {
+    background: #263b80;
+    color: white;
+    padding: 25px 40px;
+}
+
+.header h1 {
+    margin: 0 0 8px;
+}
+
+.header p {
+    margin: 0;
+    color: #dce3ff;
+}
+
+.nav {
+    display: flex;
+    gap: 10px;
+    padding: 15px 40px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+}
+
+.nav button {
+    padding: 12px 22px;
+    border: none;
+    background: #eee;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.nav button.active {
+    background: #263b80;
+    color: white;
+}
+
+.main {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+.page {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow-x: auto;
+}
+
+.page h2 {
+    margin-top: 0;
+    color: #263b80;
+}
+
+.page h3 {
+    margin-top: 30px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 500px;
+    margin-bottom: 30px;
+}
+
+input, textarea, select {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background: #3155c6;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+button.delete {
+    background: #dc4444;
+    margin-left: 5px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    min-width: 600px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: center;
+}
+
+th {
+    background: #edf0f8;
+}
+
+.footer {
+    padding: 25px;
+    text-align: center;
+    color: #777;
+}
+
+@media (max-width: 650px) {
+    .header {
+        padding: 20px;
+    }
+
+    .nav {
+        padding: 10px;
+        flex-wrap: wrap;
+    }
+
+    .main {
+        padding: 0 10px;
+    }
+}

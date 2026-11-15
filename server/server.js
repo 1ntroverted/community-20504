@@ -9,4 +9,4 @@ app.get('/api/health',async(req,res)=>{try{await db.query('SELECT 1');res.json({
 app.use('/api/users',require('./routes/userRoutes'));
 app.use('/api/boards',require('./routes/boardRoutes'));
 app.use('/api/join',require('./routes/joinRoutes'));
-app.listen(process.env.PORT||5000,()=>console.log('API http://localhost:'+(process.env.PORT||5000)));
+db.initializeDatabase().then(()=>app.listen(process.env.PORT||5000,()=>console.log('API http://localhost:'+(process.env.PORT||5000)))).catch(err=>{console.error('MySQL 연결/초기화 실패:',err.message);process.exit(1);});

@@ -1,187 +1,23 @@
-import { useEffect, useState } from 'react';
-import { userApi } from '../api/api';
-
-function UserPage() {
-    const [users, setUsers] = useState([]);
-    const [form, setForm] = useState({
-        name: '',
-        email: '',
-        phone: ''
-    });
-    const [editId, setEditId] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-    // 회원 조회
-    const loadUsers = async () => {
-        try {
-            setLoading(true);
-            const data = await userApi.list();
-            setUsers(data);
-        } catch (error) {
-            alert(error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadUsers();
-    }, []);
-
-    // 입력값 변경
-    const handleChange = (e) => {
-        setForm({
-            ...form,
-            [e.target.name]: e.target.value
-        });
-    };
-
-    // 등록 및 수정
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        try {
-            if (editId) {
-                await userApi.update(editId, form);
-                alert('회원 수정 완료');
-            } else {
-                await userApi.create(form);
-                alert('회원 등록 완료');
-            }
-
-            resetForm();
-            await loadUsers();
-        } catch (error) {
-            alert(error.message);
-        }
-    };
-
-    // 수정 선택
-    const handleEdit = (user) => {
-        setEditId(user.id);
-
-        setForm({
-            name: user.name,
-            email: user.email,
-            phone: user.phone || ''
-        });
-    };
-
-    // 삭제
-    const handleDelete = async (id) => {
-        if (!window.confirm('회원을 삭제하시겠습니까?')) return;
-
-        try {
-            await userApi.remove(id);
-            alert('회원 삭제 완료');
-            await loadUsers();
-        } catch (error) {
-            alert(error.message);
-        }
-    };
-
-    // 초기화
-    const resetForm = () => {
-        setEditId(null);
-        setForm({
-            name: '',
-            email: '',
-            phone: ''
-        });
-    };
-
-    return (
-        <div className="page">
-
-            <h2>회원 관리</h2>
-
-            <form onSubmit={handleSubmit} className="form">
-
-                <input
-                    name="name"
-                    placeholder="이름"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                />
-
-                <input
-                    name="email"
-                    type="email"
-                    placeholder="이메일"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                />
-
-                <input
-                    name="phone"
-                    placeholder="전화번호"
-                    value={form.phone}
-                    onChange={handleChange}
-                />
-
-                <button type="submit">
-                    {editId ? '수정하기' : '회원 등록'}
-                </button>
-
-                <button type="button" onClick={resetForm}>
-                    초기화
-                </button>
-
-            </form>
-
-            <h3>회원 목록</h3>
-
-            {loading ? (
-                <p>조회 중...</p>
-            ) : (
-                <table>
-                    <thead>
-                        <tr>
-                            <th>번호</th>
-                            <th>이름</th>
-                            <th>이메일</th>
-                            <th>전화번호</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {users.map(user => (
-                            <tr key={user.id}>
-                                <td>{user.id}</td>
-                                <td>{user.name}</td>
-                                <td>{user.email}</td>
-                                <td>{user.phone || '-'}</td>
-                                <td>
-                                    <button
-                                        onClick={() => handleEdit(user)}
-                                    >
-                                        수정
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleDelete(user.id)}
-                                        className="delete"
-                                    >
-                                        삭제
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-
-                        {users.length === 0 && (
-                            <tr>
-                                <td colSpan="5">회원이 없습니다.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            )}
-
-        </div>
-    );
+import {useEffect,useState} from 'react';
+import {userApi,setToken} from '../api/api';
+export default function UserPage({user,onLogin,onRefresh,onLogout}){
+ const [mode,setMode]=useState('login');const [form,setForm]=useState({name:'',email:'',password:'',phone:''});
+ useEffect(()=>{if(user)setForm({name:user.name,email:user.email,phone:user.phone||'',password:''})},[user]);
+ const change=e=>setForm({...form,[e.target.name]:e.target.value});
+ const submit=async e=>{e.preventDefault();try{
+ if(user){await userApi.update(form);await onRefresh();alert('프로필 수정 완료');setForm(f=>({...f,password:''}));}
+ else if(mode==='register'){await userApi.register(form);alert('회원가입 성공! 로그인해 주세요.');setMode('login');setForm(f=>({...f,password:''}));}
+ else {const data=await userApi.login(form);setToken(data.token);onLogin(data.user);}
+ }catch(err){alert(err.message)}};
+ const remove=async()=>{if(!window.confirm('정말 탈퇴하시겠습니까? 작성한 게시글도 삭제됩니다.'))return;try{await userApi.remove();onLogout();alert('탈퇴 완료');}catch(err){alert(err.message)}};
+ return <div className="page"><h2>{user?'마이페이지':mode==='login'?'로그인':'회원가입'}</h2>
+ {!user&&<div><button type="button" onClick={()=>setMode('login')}>로그인</button> <button type="button" onClick={()=>setMode('register')}>회원가입</button></div>}
+ <form className="form" onSubmit={submit}>
+ {(user||mode==='register')&&<input name="name" placeholder="이름" value={form.name} onChange={change} required/>}
+ <input name="email" type="email" placeholder="이메일" value={form.email} onChange={change} required/>
+ {(user||mode==='register')&&<input name="phone" placeholder="전화번호 (선택)" value={form.phone} onChange={change}/>}
+ <input name="password" type="password" placeholder={user?'새 비밀번호 (변경하지 않으려면 비워두기)':'비밀번호 (6자 이상)'} value={form.password} onChange={change} required={!user} minLength={user?undefined:6}/>
+ <button type="submit">{user?'프로필 수정':mode==='login'?'로그인':'회원가입'}</button></form>
+ {user&&<><p>회원번호: {user.id} / 가입 이메일: {user.email}</p><button className="delete" onClick={remove}>회원 탈퇴</button></>}
+ </div>;
 }
-
-export default UserPage;

@@ -1,74 +1,10 @@
-const API = import.meta.env.VITE_API_URL;
-
-const request = async (url, options = {}) => {
-    try {
-        const response = await fetch(`${API}${url}`, {
-            ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || '서버 요청 실패');
-        }
-
-        return data;
-
-    } catch (error) {
-        console.error('API 요청 오류:', error);
-        throw error;
-    }
-};
-
-// 회원 CRUD
-export const userApi = {
-    list: () => request('/users'),
-
-    detail: (id) => request(`/users/${id}`),
-
-    create: (data) => request('/users', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    }),
-
-    update: (id, data) => request(`/users/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    }),
-
-    remove: (id) => request(`/users/${id}`, {
-        method: 'DELETE'
-    })
-};
-
-// 게시글 CRUD
-export const boardApi = {
-    list: () => request('/boards'),
-
-    detail: (id) => request(`/boards/${id}`),
-
-    create: (data) => request('/boards', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    }),
-
-    update: (id, data) => request(`/boards/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    }),
-
-    remove: (id) => request(`/boards/${id}`, {
-        method: 'DELETE'
-    })
-};
-
-// JOIN
-export const joinApi = {
-    userPosts: () => request('/join/user-posts'),
-
-    postComments: () => request('/join/post-comments')
-};
+const API=import.meta.env.VITE_API_URL||'http://localhost:5000/api';
+export const getToken=()=>localStorage.getItem('community_token');
+export const setToken=t=>t?localStorage.setItem('community_token',t):localStorage.removeItem('community_token');
+async function request(path,method='GET',body){
+ const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json',...(getToken()?{Authorization:'Bearer '+getToken()}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ const data=await r.json();if(!r.ok)throw Error(data.message||'요청 실패');return data;
+}
+export const userApi={register:d=>request('/users/register','POST',d),login:d=>request('/users/login','POST',d),me:()=>request('/users/me'),update:d=>request('/users/me','PUT',d),remove:()=>request('/users/me','DELETE')};
+export const boardApi={list:()=>request('/boards'),create:d=>request('/boards','POST',d),update:(id,d)=>request('/boards/'+id,'PUT',d),remove:id=>request('/boards/'+id,'DELETE')};
+export const joinApi={userPosts:()=>request('/join/user-posts'),postComments:()=>request('/join/post-comments')};

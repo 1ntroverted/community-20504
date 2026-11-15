@@ -1,126 +1,35 @@
-const db = require('../config/db');
-
-// 회원 전체 조회
-exports.getUsers = async (req, res) => {
-    try {
-        const [rows] = await db.query(
-            'SELECT * FROM users ORDER BY id DESC'
-        );
-
-        res.json(rows);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+const db=require('../config/db');
+const bcrypt=require('bcryptjs');
+const {sign}=require('../middleware/auth');
+const valid=(name,email)=>typeof name==='string'&&name.trim()&&typeof email==='string'&&/^\S+@\S+\.\S+$/.test(email.trim());
+exports.register=async(req,res)=>{
+ try{
+  const {name,email,password,phone}=req.body;
+  if(!valid(name,email)||typeof password!=='string'||password.length<6) return res.status(400).json({message:'이름, 이메일, 6자 이상 비밀번호를 입력하세요.'});
+  const hash=await bcrypt.hash(password,10);
+  const [r]=await db.execute('INSERT INTO users(name,email,password,phone) VALUES(?,?,?,?)',[name.trim(),email.trim().toLowerCase(),hash,phone||null]);
+  res.status(201).json({message:'가입 성공',id:r.insertId});
+ }catch(e){res.status(e.code==='ER_DUP_ENTRY'?409:500).json({message:e.code==='ER_DUP_ENTRY'?'이미 가입된 이메일입니다.':e.message});}
 };
-
-// 회원 상세 조회
-exports.getUser = async (req, res) => {
-    try {
-        const [rows] = await db.execute(
-            'SELECT * FROM users WHERE id = ?',
-            [req.params.id]
-        );
-
-        if (rows.length === 0) {
-            return res.status(404).json({ message: '회원 없음' });
-        }
-
-        res.json(rows[0]);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+exports.login=async(req,res)=>{
+ try{
+  const [rows]=await db.execute('SELECT id,name,email,password FROM users WHERE email=?',[(req.body.email||'').trim().toLowerCase()]);
+  if(!rows.length||!await bcrypt.compare(req.body.password||'',rows[0].password))return res.status(401).json({message:'이메일 또는 비밀번호가 틀렸습니다.'});
+  res.json({token:sign(rows[0].id),user:{id:rows[0].id,name:rows[0].name,email:rows[0].email}});
+ }catch(e){res.status(500).json({message:e.message});}
 };
-
-// 회원 등록
-exports.createUser = async (req, res) => {
-    try {
-        const { name, email, phone } = req.body;
-
-        if (!name?.trim() || !email?.trim()) {
-            return res.status(400).json({
-                message: '이름과 이메일은 필수입니다.'
-            });
-        }
-
-        const [result] = await db.execute(
-            'INSERT INTO users (name, email, phone) VALUES (?, ?, ?)',
-            [name.trim(), email.trim(), phone || null]
-        );
-
-        res.status(201).json({
-            message: '회원 등록 성공',
-            id: result.insertId
-        });
-    } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({
-                message: '이미 등록된 이메일입니다.'
-            });
-        }
-
-        res.status(500).json({ message: error.message });
-    }
+exports.me=(req,res)=>res.json(req.user);
+exports.update=async(req,res)=>{
+ try{
+  const {name,email,phone,password}=req.body;
+  if(!valid(name,email))return res.status(400).json({message:'이름과 이메일을 확인하세요.'});
+  if(password && password.length<6)return res.status(400).json({message:'비밀번호는 6자 이상이어야 합니다.'});
+  if(password){const hash=await bcrypt.hash(password,10);await db.execute('UPDATE users SET name=?,email=?,phone=?,password=? WHERE id=?',[name.trim(),email.trim().toLowerCase(),phone||null,hash,req.user.id]);}
+  else await db.execute('UPDATE users SET name=?,email=?,phone=? WHERE id=?',[name.trim(),email.trim().toLowerCase(),phone||null,req.user.id]);
+  res.json({message:'프로필 수정 완료'});
+ }catch(e){res.status(e.code==='ER_DUP_ENTRY'?409:500).json({message:e.code==='ER_DUP_ENTRY'?'이미 등록된 이메일입니다.':e.message});}
 };
-
-// 회원 수정
-exports.updateUser = async (req, res) => {
-    try {
-        const { name, email, phone } = req.body;
-
-        if (!name?.trim() || !email?.trim()) {
-            return res.status(400).json({
-                message: '이름과 이메일은 필수입니다.'
-            });
-        }
-
-        const [result] = await db.execute(
-            `UPDATE users
-             SET name = ?, email = ?, phone = ?
-             WHERE id = ?`,
-            [name.trim(), email.trim(), phone || null, req.params.id]
-        );
-
-        if (result.affectedRows === 0) {
-            const [rows] = await db.execute(
-                'SELECT id FROM users WHERE id = ?',
-                [req.params.id]
-            );
-
-            if (rows.length === 0) {
-                return res.status(404).json({
-                    message: '회원이 없습니다.'
-                });
-            }
-        }
-
-        res.json({ message: '회원 수정 성공' });
-    } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({
-                message: '이미 등록된 이메일입니다.'
-            });
-        }
-
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// 회원 삭제
-exports.deleteUser = async (req, res) => {
-    try {
-        const [result] = await db.execute(
-            'DELETE FROM users WHERE id = ?',
-            [req.params.id]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: '회원이 없습니다.'
-            });
-        }
-
-        res.json({ message: '회원 삭제 성공' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+exports.remove=async(req,res)=>{
+ try{await db.execute('DELETE FROM users WHERE id=?',[req.user.id]);res.json({message:'탈퇴 완료'});}
+ catch(e){res.status(500).json({message:e.message});}
 };
